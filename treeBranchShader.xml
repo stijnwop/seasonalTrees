@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+-
+- seasonTreeBranchShader
+-
+- Authors: Wopster
+- Description: Tree branches prepared for Seasons
+-
+- Copyright (c) Wopster, 2017
+-->
+
+<CustomShader version="3">
+    <Parameters>
+        <Parameter name="windScale" target="windScale" type="float" defaultValue="1" minValue="0" maxValue="1"/>
+        <Parameter name="seasonState" target="seasonState" type="fixed" defaultValue="1" minValue="1" maxValue="4"/>
+    </Parameters>
+    <Textures>
+        <Texture name="seasonSpring" defaultColorProfile="linearRGB" defaultFilename="../spring/oakBranch_diffuse.dds"/>
+        <Texture name="seasonAutumn" defaultColorProfile="linearRGB" defaultFilename="../autumn/oakBranch_diffuse.dds"/>
+        <Texture name="seasonWinter" defaultColorProfile="linearRGB" defaultFilename="../winter/oakBranch_diffuse.dds"/>
+    </Textures>
+    <LodLevel startDistance="0">
+        <CodeInjections>
+            <CodeInjection position="SAMPLERS">
+                <![CDATA[
+                    sampler2D seasonSpring;
+                    sampler2D seasonAutumn;
+                    sampler2D seasonWinter;
+                ]]>
+            </CodeInjection>
+            <CodeInjection position="MATERIALINFO">
+                <![CDATA[
+                    uniform float windScale;
+
+                    /*
+                        Season states:
+                        1 = spring
+                        2 = summer
+                        3 = autumn
+                        4 = winter
+                    */
+                    uniform fixed seasonState;
+                ]]>
+            </CodeInjection>
+            <CodeInjection position="POST_ALBEDO_FS">
+                <![CDATA[
+                    // default is summer (seasonState 2) so take orginal albedo
+                    float4 season = albedo.rgba;
+                    float4 seasonTarget = albedo.rgba;
+
+                    if (seasonState >= 1 && seasonState < 2) {
+                        season = tex2D(seasonSpring, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                    } else if (seasonState > 2 && seasonState <= 3) {
+                        seasonTarget = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+
+                        // when reached max state force source rgb to target rgb
+                        if (seasonState == 3) {
+                            season = seasonTarget;
+                        }
+                    } else if (seasonState >= 3 && seasonState <= 4) {
+                        season = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                        seasonTarget = tex2D(seasonWinter, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+
+                        // when reached max state force source rgb to target rgb
+                        if (seasonState == 4) {
+                            season = seasonTarget;
+                        }
+
+                        #if defined(ALPHA_BLENDED) || defined(ALPHA_TESTED)
+                            #define MERGE_SWIZ rgba
+                        #else
+                            #define MERGE_SWIZ rgb
+                        #endif
+                    }
+
+                    float coeff  = 1 - season.b;
+                    float amount = saturate((coeff * 1.05 - (max(seasonState * 1.0 / floor(seasonState), 1.0) - 0.5)) * 2);
+
+                    // when reached winter state force winter diffuse because we lose leaves
+                    if (seasonState > 3) {
+                        albedo.MERGE_SWIZ = lerp(seasonTarget.MERGE_SWIZ, season.MERGE_SWIZ, amount + 0.00001); // + 0.00001 hack to fix bug in shader compiler
+                    }
+
+                    albedo.rgb = lerp(seasonTarget.rgba, season.rgba, amount);
+                ]]>
+            </CodeInjection>
+            <CodeInjection position="POST_GET_WORLD_POSE_VS">
+                <![CDATA[
+                    float3 windDirection = float3(1,0,0);
+                    float windStrength = cShared0*windScale;
+                    if (windStrength > 0.0001) {
+                        // Trunk animation
+                        float3 treePos = float3(modelMatrix[0][3] + invViewMatrix[0][3],
+                                                modelMatrix[1][3] + invViewMatrix[1][3],
+                                                modelMatrix[2][3] + invViewMatrix[2][3]);
+                        float3 windSideDirection = cross(float3(0,1,0), windDirection);
+
+                        float treeVarSeed = treePos.x + treePos.y + treePos.z;
+
+                        float3 trunkMoveDirection = windDirection;
+                        trunkMoveDirection = normalize(trunkMoveDirection + windSideDirection*sin(0.9 * cTime_s + treeVarSeed + 0.1)*0.3);
+
+                        float normalizedTreeY = In.position.y/30;
+                        float trunkOffsetScale = (1*max(windStrength-0.1,0)/0.9 + sin( 1.5 * cTime_s + treeVarSeed)*0.7*windStrength)*normalizedTreeY*normalizedTreeY;
+                        float3 trunkOffset = trunkMoveDirection * trunkOffsetScale;
+
+
+                        // Branch animation
+                        float branchVarSeed = (In.position.x+In.position.y)*1.2 + treeVarSeed;
+
+                        float branchDistanceToTrunk = saturate(In.normal.w*100 / 3.0);
+
+                        float3 branchMoveDirection = windDirection;
+                        branchMoveDirection = normalize(branchMoveDirection + windSideDirection*sin(branchVarSeed)*0.3);
+
+                        float branchMove1 = sin( 0.8 * cTime_s + branchVarSeed);
+                        float branchMove2 = sin( 5 * cTime_s + branchVarSeed);
+
+                        float branchMove = lerp(branchMove1, branchMove2, windStrength);
+                        branchMove *= (windStrength * 0.8 +0.2) * 0.2;
+                        branchMove *= branchDistanceToTrunk;
+
+                        worldPosition += branchMoveDirection*branchMove + trunkOffset;
+                    }
+                ]]>
+            </CodeInjection>
+            <CodeInjection position="POST_GET_LIGHTING_FS">
+                <![CDATA[
+                {
+                    float NdotL = dot(normal, lightDir);
+                    if (NdotL < 0) {
+                        NdotL = -NdotL*0.35;
+                    }
+                    NdotL = min(NdotL, 1);
+                    float3 lighting = atten*NdotL * (diffuseShading + specularShading) * lightColor;
+                    return lighting;
+                }
+                ]]>
+            </CodeInjection>
+        </CodeInjections>
+    </LodLevel>
+</CustomShader>
