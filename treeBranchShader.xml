@@ -27,7 +27,10 @@
                     sampler2D seasonSpring;
                     sampler2D seasonAutumn;
                     sampler2D seasonWinter;
-                    sampler2D seasonWinterNormal;
+
+                    #if defined(NORMAL_MAP)
+                        sampler2D seasonWinterNormal;
+                    #endif
                 ]]>
             </CodeInjection>
             <CodeInjection position="MATERIALINFO">
@@ -50,6 +53,10 @@
                     float4 gSeasonSpring;
                     float4 gSeasonAutumn;
                     float4 gSeasonWinter;
+
+                    #if defined(NORMAL_MAP)
+                        float4 gSeasonWinterNormal;
+                    #endif
                 ]]>
             </CodeInjection>
             <CodeInjection position="START_FS">
@@ -57,6 +64,10 @@
                     globals.gSeasonSpring = tex2D(seasonSpring, In.vs.ALBEDOMAP_TEXCOORD).rgba;
                     globals.gSeasonAutumn = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
                     globals.gSeasonWinter = tex2D(seasonWinter, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+
+                    #if defined(NORMAL_MAP)
+                        globals.gSeasonWinterNormal = tex2D(seasonWinterNormal, In.vs.NORMALMAP_TEXCOORD).xyz - 0.5;
+                    #endif
 
                     // Take blue channel of spring
                     float bText = 1 - globals.gSeasonSpring.b;
@@ -109,8 +120,7 @@
                         float3 sourceNormal = tex2D(normalMap, In.vs.NORMALMAP_TEXCOORD ).xyz - 0.5;
 
                         if (seasonState > 3) {
-                            float3 targetNormal = tex2D(seasonWinterNormal, In.vs.NORMALMAP_TEXCOORD ).xyz - 0.5;
-                            sourceNormal.rgb = lerp(sourceNormal.rgb, targetNormal.rgb, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
+                            sourceNormal.rgb = lerp(sourceNormal.rgb, globals.gSeasonWinterNormal.rgb, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
                         }
 
                         return sourceNormal;
