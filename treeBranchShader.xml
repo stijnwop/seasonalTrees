@@ -18,6 +18,7 @@
         <Texture name="seasonSpring" defaultColorProfile="linearRGB" defaultFilename="../spring/oakBranch_diffuse.dds"/>
         <Texture name="seasonAutumn" defaultColorProfile="linearRGB" defaultFilename="../autumn/oakBranch_diffuse.dds"/>
         <Texture name="seasonWinter" defaultColorProfile="linearRGB" defaultFilename="../winter/oakBranch_diffuse.dds"/>
+        <Texture name="seasonWinterNormal" defaultColorProfile="linearRGB" defaultFilename="../winter/oakBranch_normal.dds"/>
     </Textures>
     <LodLevel startDistance="0">
         <CodeInjections>
@@ -26,6 +27,7 @@
                     sampler2D seasonSpring;
                     sampler2D seasonAutumn;
                     sampler2D seasonWinter;
+                    sampler2D seasonWinterNormal;
                 ]]>
             </CodeInjection>
             <CodeInjection position="MATERIALINFO">
@@ -44,6 +46,7 @@
             </CodeInjection>
             <CodeInjection position="FS_GLOBALS">
                 <![CDATA[
+                    float gSeasonFactor;
                     float4 gSeasonSpring;
                     float4 gSeasonAutumn;
                     float4 gSeasonWinter;
@@ -54,11 +57,15 @@
                     globals.gSeasonSpring = tex2D(seasonSpring, In.vs.ALBEDOMAP_TEXCOORD).rgba;
                     globals.gSeasonAutumn = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
                     globals.gSeasonWinter = tex2D(seasonWinter, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+
+                    // Take blue channel of spring
+                    float bText = 1 - globals.gSeasonSpring.b;
+                    globals.gSeasonFactor = saturate((bText * 1.05 - (max(seasonState * 1.0 / floor(seasonState), 1.0) - 0.5)) * 2);
                 ]]>
             </CodeInjection>
             <CodeInjection position="POST_ALBEDO_FS">
                 <![CDATA[
-                    // default is summer (seasonState 2) so take orginal albedo
+                    // Default is summer (seasonState 2) so take orginal albedo
                     float4 season = albedo.rgba;
                     float4 seasonTarget = albedo.rgba;
 
@@ -67,7 +74,7 @@
                     } else if (seasonState > 2 && seasonState <= 3) {
                         seasonTarget = globals.gSeasonAutumn;
 
-                        // when reached max state force source rgb to target rgb
+                        // When reached max state, force source rgb to target rgb
                         if (seasonState == 3) {
                             season = seasonTarget;
                         }
@@ -75,7 +82,7 @@
                         season = globals.gSeasonAutumn;
                         seasonTarget = globals.gSeasonWinter;
 
-                        // when reached max state force source rgb to target rgb
+                        // When reached max state, force source rgb to target rgb
                         if (seasonState == 4) {
                             season = seasonTarget;
                         }
@@ -87,15 +94,27 @@
                         #endif
                     }
 
-                    float coeff = 1 - season.b;
-                    float amount = saturate((coeff * 1.05 - (max(seasonState * 1.0 / floor(seasonState), 1.0) - 0.5)) * 2);
-
-                    // when reached winter state force winter diffuse because we lose leaves
+                    // When reached winter state force winter diffuse because we lose leaves
                     if (seasonState > 3) {
-                        albedo.MERGE_SWIZ = lerp(seasonTarget.MERGE_SWIZ, season.MERGE_SWIZ, amount + 0.00001); // + 0.00001 hack to fix bug in shader compiler
+                        albedo.MERGE_SWIZ = lerp(seasonTarget.MERGE_SWIZ, season.MERGE_SWIZ, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
                     }
 
-                    albedo.rgb = lerp(seasonTarget.rgba, season.rgba, amount);
+                    albedo.rgb = lerp(seasonTarget.rgba, season.rgba, globals.gSeasonFactor);
+                ]]>
+            </CodeInjection>
+
+            <CodeInjection position="GET_NORMAL_FS">
+                <![CDATA[
+                    #if defined( NORMAL_MAP )
+                        float3 sourceNormal = tex2D(normalMap, In.vs.NORMALMAP_TEXCOORD ).xyz - 0.5;
+
+                        if (seasonState > 3) {
+                            float3 targetNormal = tex2D(seasonWinterNormal, In.vs.NORMALMAP_TEXCOORD ).xyz - 0.5;
+                            sourceNormal.rgb = lerp(sourceNormal.rgb, targetNormal.rgb, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
+                        }
+
+                        return sourceNormal;
+                     #endif
                 ]]>
             </CodeInjection>
             <CodeInjection position="POST_GET_WORLD_POSE_VS">
