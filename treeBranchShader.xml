@@ -42,6 +42,20 @@
                     uniform fixed seasonState;
                 ]]>
             </CodeInjection>
+            <CodeInjection position="FS_GLOBALS">
+                <![CDATA[
+                    float4 gSeasonSpring;
+                    float4 gSeasonAutumn;
+                    float4 gSeasonWinter;
+                ]]>
+            </CodeInjection>
+            <CodeInjection position="START_FS">
+                <![CDATA[
+                    globals.gSeasonSpring = tex2D(seasonSpring, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                    globals.gSeasonAutumn = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                    globals.gSeasonWinter = tex2D(seasonWinter, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                ]]>
+            </CodeInjection>
             <CodeInjection position="POST_ALBEDO_FS">
                 <![CDATA[
                     // default is summer (seasonState 2) so take orginal albedo
@@ -49,17 +63,17 @@
                     float4 seasonTarget = albedo.rgba;
 
                     if (seasonState >= 1 && seasonState < 2) {
-                        season = tex2D(seasonSpring, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                        season = globals.gSeasonSpring;
                     } else if (seasonState > 2 && seasonState <= 3) {
-                        seasonTarget = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                        seasonTarget = globals.gSeasonAutumn;
 
                         // when reached max state force source rgb to target rgb
                         if (seasonState == 3) {
                             season = seasonTarget;
                         }
-                    } else if (seasonState >= 3 && seasonState <= 4) {
-                        season = tex2D(seasonAutumn, In.vs.ALBEDOMAP_TEXCOORD).rgba;
-                        seasonTarget = tex2D(seasonWinter, In.vs.ALBEDOMAP_TEXCOORD).rgba;
+                    } else if (seasonState > 3 && seasonState <= 4) {
+                        season = globals.gSeasonAutumn;
+                        seasonTarget = globals.gSeasonWinter;
 
                         // when reached max state force source rgb to target rgb
                         if (seasonState == 4) {
