@@ -116,15 +116,15 @@
 
             <CodeInjection position="GET_NORMAL_FS">
                 <![CDATA[
-                    #if defined( NORMAL_MAP )
-                        float3 sourceNormal = tex2D(normalMap, In.vs.NORMALMAP_TEXCOORD ).xyz - 0.5;
+                    #if defined(NORMAL_MAP)
+                        float3 sourceNormal = tex2D(normalMap, In.vs.NORMALMAP_TEXCOORD).xyz - 0.5;
 
                         if (seasonState > 3) {
                             sourceNormal.rgb = lerp(sourceNormal.rgb, globals.gSeasonWinterNormal.rgb, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
                         }
 
                         return sourceNormal;
-                     #endif
+                    #endif
                 ]]>
             </CodeInjection>
             <CodeInjection position="POST_GET_WORLD_POSE_VS">
