@@ -55,7 +55,7 @@
                     float4 gSeasonWinter;
 
                     #if defined(NORMAL_MAP)
-                        float4 gSeasonWinterNormal;
+                        float3 gSeasonWinterNormal;
                     #endif
                 ]]>
             </CodeInjection>
