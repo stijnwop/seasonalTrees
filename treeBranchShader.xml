@@ -12,7 +12,7 @@
 <CustomShader version="3">
     <Parameters>
         <Parameter name="windScale" target="windScale" type="float" defaultValue="1" minValue="0" maxValue="1"/>
-        <Parameter name="seasonState" target="seasonState" type="float" defaultValue="1" minValue="1" maxValue="4"/>
+        <Parameter name="seasonState" target="seasonState" type="float" defaultValue="1" minValue="0" maxValue="4"/>
     </Parameters>
     <Textures>
         <Texture name="seasonSpring"/>
@@ -72,6 +72,10 @@
                     // Take blue channel of spring
                     float bText = 1 - globals.gSeasonSpring.b;
                     globals.gSeasonFactor = saturate((bText * 1.05 - (max(seasonState * 1.0 / floor(seasonState), 1.0) - 0.5)) * 2);
+
+                    if (seasonState < 1) {
+                        globals.gSeasonFactor = 1.0 - seasonState;
+                    }
                 ]]>
             </CodeInjection>
             <CodeInjection position="POST_ALBEDO_FS">
@@ -80,7 +84,10 @@
                     float4 season = albedo.rgba;
                     float4 seasonTarget = albedo.rgba;
 
-                    if (seasonState >= 1 && seasonState < 2) {
+                    if (seasonState >= 0 && seasonState < 1) {
+                        season = globals.gSeasonWinter;
+                        seasonTarget = globals.gSeasonSpring;
+                    } else if (seasonState >= 1 && seasonState < 2) {
                         season = globals.gSeasonSpring;
                     } else if (seasonState > 2 && seasonState <= 3) {
                         seasonTarget = globals.gSeasonAutumn;
@@ -97,20 +104,20 @@
                         if (seasonState == 4) {
                             season = seasonTarget;
                         }
+                    }
 
+                    albedo.rgb = lerp(seasonTarget.rgba, season.rgba, globals.gSeasonFactor);
+
+                    // When reached winter state force winter diffuse because we lose leaves
+                    if (seasonState > 3 || seasonState < 1) {
                         #if defined(ALPHA_BLENDED) || defined(ALPHA_TESTED)
                             #define MERGE_SWIZ rgba
                         #else
                             #define MERGE_SWIZ rgb
                         #endif
-                    }
 
-                    // When reached winter state force winter diffuse because we lose leaves
-                    if (seasonState > 3) {
                         albedo.MERGE_SWIZ = lerp(seasonTarget.MERGE_SWIZ, season.MERGE_SWIZ, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
                     }
-
-                    albedo.rgb = lerp(seasonTarget.rgba, season.rgba, globals.gSeasonFactor);
                 ]]>
             </CodeInjection>
 
