@@ -1,4 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+-
+- seasonTreeTrunkShader
+-
+- Authors: Wopster
+- Description: Tree trunk prepared for Seasons with spray mark option
+-
+- Copyright (c) Wopster, 2017
+-->
 
 <CustomShader version="3">
     <Parameters>
