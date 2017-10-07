@@ -3,7 +3,7 @@
 <CustomShader version="3">
     <Parameters>
         <Parameter name="windScale" target="windScale" type="float" defaultValue="1" minValue="0" maxValue="1"/>
-        <Parameter name="uvPosition" target="uvPosition" type="float4" defaultValue="1.0 1.0 1.0 1.0" minValue="-10.0 -10.0 0.0 -10.0" maxValue="10.0 10.0 1.0 10.0"/>
+        <Parameter name="uvPosition" target="uvPosition" type="float3" defaultValue="1.0 1.0" minValue="-10.0 -10.0" maxValue="10.0 10.0"/>
     </Parameters>
     <Textures>
         <Texture name="sprayLineMask" defaultColorProfile="linearRGB" defaultFilename="sprayLineMaskCross.dds"/>
@@ -29,7 +29,7 @@
                     uniform float windScale;
 
                     #if defined(DRAW_SPRAY_LINE)
-                        uniform float4 uvPosition;
+                        uniform float3 uvPosition;
                     #endif
                 ]]>
             </CodeInjection>
