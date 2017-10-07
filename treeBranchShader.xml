@@ -126,7 +126,7 @@
                     #if defined(NORMAL_MAP)
                         float3 sourceNormal = tex2D(normalMap, In.vs.NORMALMAP_TEXCOORD).xyz - 0.5;
 
-                        if (seasonState > 3) {
+                        if (seasonState > 3 || seasonState < 1) {
                             sourceNormal.rgb = lerp(sourceNormal.rgb, globals.gSeasonWinterNormal.rgb, globals.gSeasonFactor + 0.00001); // + 0.00001 Hack to fix bug in shader compiler
                         }
 
