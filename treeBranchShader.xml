@@ -12,13 +12,13 @@
 <CustomShader version="3">
     <Parameters>
         <Parameter name="windScale" target="windScale" type="float" defaultValue="1" minValue="0" maxValue="1"/>
-        <Parameter name="seasonState" target="seasonState" type="fixed" defaultValue="1" minValue="1" maxValue="4"/>
+        <Parameter name="seasonState" target="seasonState" type="float" defaultValue="1" minValue="1" maxValue="4"/>
     </Parameters>
     <Textures>
-        <Texture name="seasonSpring" defaultColorProfile="linearRGB" defaultFilename="../spring/oakBranch_diffuse.dds"/>
-        <Texture name="seasonAutumn" defaultColorProfile="linearRGB" defaultFilename="../autumn/oakBranch_diffuse.dds"/>
-        <Texture name="seasonWinter" defaultColorProfile="linearRGB" defaultFilename="../winter/oakBranch_diffuse.dds"/>
-        <Texture name="seasonWinterNormal" defaultColorProfile="linearRGB" defaultFilename="../winter/oakBranch_normal.dds"/>
+        <Texture name="seasonSpring"/>
+        <Texture name="seasonAutumn"/>
+        <Texture name="seasonWinter"/>
+        <Texture name="seasonWinterNormal"/>
     </Textures>
     <LodLevel startDistance="0">
         <CodeInjections>
@@ -44,7 +44,7 @@
                         3 = autumn
                         4 = winter
                     */
-                    uniform fixed seasonState;
+                    uniform float seasonState;
                 ]]>
             </CodeInjection>
             <CodeInjection position="FS_GLOBALS">
